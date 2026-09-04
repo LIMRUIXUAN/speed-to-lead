@@ -51,9 +51,12 @@ jobs:
 
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ vars.GCP_REGION != '' && vars.GCP_REGION || 'us-central1' }}
-      SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE_NAME != '' && vars.CLOUD_RUN_SERVICE_NAME || 'speed-to-lead' }}
-      ARTIFACT_REPO: ${{ vars.ARTIFACT_REPO_NAME != '' && vars.ARTIFACT_REPO_NAME || 'speed-to-lead' }}
+      GCP_REGION: us-central1
+      SERVICE_NAME: speed-to-lead
+      ARTIFACT_REPO: speed-to-lead
+      WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
+      WIF_SERVICE_ACCOUNT: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
     steps:
       - name: Checkout repository
@@ -62,26 +65,26 @@ jobs:
       - name: Check GCP Credentials
         id: check-creds
         run: |
-          if [ -z "${{ secrets.GCP_PROJECT_ID }}" ]; then
+          if [ -z "${GCP_PROJECT_ID}" ] || ([ -z "${GCP_SA_KEY}" ] && [ -z "${WIF_PROVIDER}" ]); then
             echo "has_creds=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=GCP Not Configured::GCP_PROJECT_ID secret is not set yet. Run ./scripts/setup-gcp.ps1 or ./scripts/setup-gcp.sh to configure GCP credentials."
+            echo "::notice title=GCP Not Configured::GCP_PROJECT_ID or credentials (GCP_SA_KEY / WIF_PROVIDER) are not set yet. Run ./scripts/setup-gcp.ps1 or ./scripts/setup-gcp.sh to configure GCP credentials."
           else
             echo "has_creds=true" >> "$GITHUB_OUTPUT"
           fi
 
       # 1. Authenticate to Google Cloud (supports either WIF or SA Key)
       - name: Authenticate to Google Cloud (Workload Identity)
-        if: steps.check-creds.outputs.has_creds == 'true' && secrets.WIF_PROVIDER != ''
+        if: steps.check-creds.outputs.has_creds == 'true' && env.WIF_PROVIDER != ''
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
 
       - name: Authenticate to Google Cloud (Service Account Key)
-        if: steps.check-creds.outputs.has_creds == 'true' && secrets.WIF_PROVIDER == ''
+        if: steps.check-creds.outputs.has_creds == 'true' && env.WIF_PROVIDER == ''
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: ${{ env.GCP_SA_KEY }}
 
       - name: Set up Google Cloud SDK
         if: steps.check-creds.outputs.has_creds == 'true'
@@ -169,6 +172,6 @@ jobs:
             echo "- **Live URL**: [${{ steps.deploy.outputs.url }}](${{ steps.deploy.outputs.url }})" >> $GITHUB_STEP_SUMMARY
             echo "- **Health Endpoint**: [${{ steps.deploy.outputs.url }}/health](${{ steps.deploy.outputs.url }}/health)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Status**: Tests passed. Deployment skipped (GCP Secrets not yet configured)." >> $GITHUB_STEP_SUMMARY
-            echo "- **Next Step**: Run \`./scripts/setup-gcp.ps1\` or \`./scripts/setup-gcp.sh\` and add \`GCP_PROJECT_ID\` and \`GCP_SA_KEY\` to your GitHub repository secrets." >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: Automated tests passed. Cloud Run deployment was skipped because GCP secrets are not yet configured." >> $GITHUB_STEP_SUMMARY
+            echo "- **Action Required**: Run \`./scripts/setup-gcp.ps1\` or \`./scripts/setup-gcp.sh\` and add \`GCP_PROJECT_ID\` and \`GCP_SA_KEY\` to your GitHub repository secrets." >> $GITHUB_STEP_SUMMARY
           fi
