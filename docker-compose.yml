@@ -1,0 +1,14 @@
+services:
+  speed-to-lead:
+    build: .
+    ports:
+      - "8787:8787"
+    environment:
+      CALLE_API_KEY: ${CALLE_API_KEY:-}
+      CALLE_MODE: ${CALLE_MODE:-mock}
+      CALENDAR_PROVIDER: ${CALENDAR_PROVIDER:-mock}
+      CRM_PROVIDER: ${CRM_PROVIDER:-local}
+      COMPANY_NAME: ${COMPANY_NAME:-Acme}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
