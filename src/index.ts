@@ -36,6 +36,10 @@ app.get("/", async (req, reply) => {
   });
 });
 
+app.get("/favicon.ico", async (_req, reply) => {
+  reply.code(204).send();
+});
+
 app.get("/health", async () => ({
   ok: true,
   mode: config.calleMode,

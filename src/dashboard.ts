@@ -1699,8 +1699,12 @@ export function getDashboardHtml(config: { companyName: string; calleMode: strin
       const box = document.getElementById('webhookPayloadBox');
       const curlBox = document.getElementById('curlSnippetBox');
       if (!box || !curlBox) return;
-      const payload = box.value.replace(/\n/g, '').replace(/\s+/g, ' ');
-      curlBox.innerText = 'curl -X POST ' + window.location.origin + '/api/lead-submit \\\n  -H "Content-Type: application/json" \\\n  -d \'' + payload + '\'';
+      const payload = box.value.replace(/\\s+/g, ' ');
+      curlBox.innerText = [
+        'curl -X POST ' + window.location.origin + '/api/lead-submit \\\\',
+        '  -H "Content-Type: application/json" \\\\',
+        '  -d \\'' + payload + '\\''
+      ].join('\\n');
     }
 
     async function dispatchTestWebhook() {

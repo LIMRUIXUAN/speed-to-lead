@@ -77,24 +77,36 @@ export function buildTask(lead: Lead, slots: Slot[], cfg: Config, playbookId?: s
   const playbook = getPlaybook(playbookId);
   const baseTask = playbook.systemInstructions(lead, slots, cfg);
 
+  // Warm Inbound Tone & Empathetic Greeting Directive
+  const warmModeDirective = [
+    `WARM INBOUND CONVERSATION MODE:`,
+    `- High Warmth & Gratitude: Greet ${lead.name} with an upbeat, cordial, and appreciative tone. Enthusiastically thank them for reaching out to ${cfg.companyName}${lead.interest ? ` regarding "${lead.interest}"` : ""} moments ago.`,
+    `- Immediate Contextual Recognition: State clearly and warmly that this is a rapid, personalized follow-up to their recent inbound inquiry so they immediately feel prioritized and valued.`,
+    `- Empathetic, Consultative Rapport: Treat the prospect like an esteemed partner. Validate their business goals and pain points with warmth and active listening (e.g., "That makes total sense," "We hear that often from teams like yours," "I'd love to help make that seamless for you").`,
+    `- Anti-Interrogation Guardrail: Never grill or interrogate the prospect with a rigid checklist. Naturally weave BANT qualification into an engaging, helpful two-way conversation.`,
+    `- Gracious Demo Invitation: Offer demo slots as a high-value, no-obligation walkthrough tailored to their exact workflow. If they hesitate or decline, remain remarkably gracious and accommodating (e.g., "Totally understand! I'm happy to send you a quick overview to review whenever you're ready").`,
+  ].join("\n");
+
   // Multilingual regional dialect and greeting guidance
-  let languageDirective = `Speak naturally in English (US).`;
+  let languageDirective = `Speak naturally and warmly in English (US). Warm opener: "Hi ${lead.name}! Thanks so much for reaching out to ${cfg.companyName}—I saw you just inquired about ${lead.interest || "our solutions"} and wanted to quickly see how we can help!"`;
   if (lead.locale?.startsWith("ms") || lead.region === "MY") {
-    languageDirective = `The caller is located in Malaysia (MY). Speak in polite Malaysian Business English or Bahasa Malaysia if the prospect prefers ("Selamat sejahtera / Hello ${lead.name}, saya follow-up dari ${cfg.companyName}").`;
+    languageDirective = `The caller is located in Malaysia (MY). Speak in warm, hospitable Malaysian Business English or Bahasa Malaysia if the prospect prefers ("Selamat sejahtera / Hello ${lead.name}! Terima kasih kerana menghubungi ${cfg.companyName}. Saya follow-up sekejap untuk bantu anda dengan pertanyaan anda").`;
   } else if (lead.locale?.startsWith("es") || lead.region === "ES" || lead.region === "MX") {
-    languageDirective = `The caller is in a Spanish-speaking region (${lead.region || "ES"}). Speak in natural, professional Spanish ("Hola ${lead.name}, le llamo de ${cfg.companyName} con respecto a su solicitud").`;
+    languageDirective = `The caller is in a Spanish-speaking region (${lead.region || "ES"}). Speak in warm, professional Spanish ("¡Hola ${lead.name}! Muchísimas gracias por contactar a ${cfg.companyName}. Le llamo rápidamente para responder a su solicitud y ver cómo podemos apoyarle").`;
   } else if (lead.locale?.startsWith("de") || lead.region === "DE") {
-    languageDirective = `The caller is in Germany (DE). Speak in professional German ("Guten Tag ${lead.name}, ich rufe von ${cfg.companyName} bezüglich Ihrer Anfrage an").`;
+    languageDirective = `The caller is in Germany (DE). Speak in cordial, professional German ("Guten Tag ${lead.name}, herzlichen Dank für Ihr Interesse an ${cfg.companyName}! Ich melde mich kurz bei Ihnen, um Ihre Fragen direkt zu beantworten").`;
   } else if (lead.locale?.startsWith("ja") || lead.region === "JP") {
-    languageDirective = `The caller is in Japan (JP). Speak in polite business Japanese (Keigo: "いつもお世話になっております。${cfg.companyName}の担当者でございます").`;
+    languageDirective = `The caller is in Japan (JP). Speak in polite, warmly welcoming Japanese (Keigo: "${lead.name}様、この度は${cfg.companyName}にお問い合わせいただき誠にありがとうございます。早速ですがご要望についてお伺いできれば幸いです").`;
   } else if (lead.locale?.startsWith("fr") || lead.region === "FR") {
-    languageDirective = `The caller is in France (FR). Speak in professional French ("Bonjour ${lead.name}, je vous contacte de la part de ${cfg.companyName}").`;
+    languageDirective = `The caller is in France (FR). Speak in warm, courteous French ("Bonjour ${lead.name} ! Merci beaucoup d'avoir contacté ${cfg.companyName}, je vous appelle rapidement pour faire suite à votre demande et voir comment nous pouvons vous accompagner").`;
   } else if (lead.locale?.startsWith("en-GB") || lead.region === "GB") {
-    languageDirective = `The caller is in the United Kingdom. Speak with British English spelling and natural UK phrasing.`;
+    languageDirective = `The caller is in the United Kingdom. Speak with warm British English phrasing and polite UK etiquette ("Hello ${lead.name}, lovely to speak with you! Thanks ever so much for getting in touch with ${cfg.companyName}").`;
   }
 
   return [
     baseTask,
+    ``,
+    warmModeDirective,
     ``,
     `LANGUAGE DIRECTIVE: ${languageDirective}`,
     ``,
@@ -286,29 +298,38 @@ function mockQualify(lead: Lead, slots: Slot[], cfg: Config, playbookId: Playboo
   const sentiment = computeSentiment(qualification);
 
   let transcript = [
-    { speaker: "bot", text: `Hi ${lead.name}, this is ${cfg.companyName}. I'm following up on your recent inquiry.` },
-    { speaker: "user", text: qualified ? "Yes, we're actively looking for an automated voice solution." : "Not a good time, thanks." },
+    {
+      speaker: "bot",
+      text: `Hi ${lead.name}! Thanks so much for reaching out to ${cfg.companyName}${lead.interest ? ` regarding "${lead.interest}"` : ""} moments ago—I wanted to quickly connect, answer your questions, and see how we can help!`,
+    },
+    { speaker: "user", text: qualified ? "Hello! Thanks for the lightning fast call. Yes, we're actively looking for an automated voice solution." : "Hi there, thanks for checking in so quickly! We're just exploring for now." },
   ];
 
   if (lead.region === "MY" || lead.phone.startsWith("+60")) {
     transcript = [
-      { speaker: "bot", text: `Selamat pagi / Hi ${lead.name}, this is ${cfg.companyName} calling regarding your inbound lead automation inquiry.` },
-      { speaker: "user", text: qualified ? "Hello! Yes, we want to cut down our response time under 15 seconds across our APAC team." : "Hi, not interested currently." },
-      { speaker: "bot", text: qualified ? `Understood. Would tomorrow morning or tomorrow afternoon work best for a 20-minute executive walkthrough?` : "No problem at all, have a great day." },
+      {
+        speaker: "bot",
+        text: `Selamat pagi / Hi ${lead.name}! Terima kasih kerana menghubungi ${cfg.companyName}. I'm following up right away on your inquiry to see how we can best assist your team.`,
+      },
+      { speaker: "user", text: qualified ? "Hello! Wow, that was under 15 seconds. Yes, we want to cut down lead response time across our team." : "Hi, thanks for reaching out, but we're not looking to switch tools right now." },
+      { speaker: "bot", text: qualified ? `That's wonderful! I'd love to have one of our product specialists show you a live walkthrough. Would tomorrow morning or afternoon suit your schedule better?` : "Totally understand! I'll leave our details with you. Have a wonderful day ahead!" },
       { speaker: "user", text: qualified ? (accepted ? "Tomorrow morning at 10 AM works great for us!" : "Let me check with my team first.") : "" },
     ].filter((t) => Boolean(t.text));
   } else if (lead.region === "ES" || lead.region === "MX" || lead.phone.startsWith("+34") || lead.phone.startsWith("+52")) {
     transcript = [
-      { speaker: "bot", text: `Hola ${lead.name}, le llamo de ${cfg.companyName} para dar seguimiento a su solicitud de demostración.` },
-      { speaker: "user", text: qualified ? "Hola, sí, estamos evaluando soluciones para calificar prospectos automáticamente." : "Por ahora no estamos interesados." },
-      { speaker: "bot", text: qualified ? "¿Le gustaría agendar una breve sesión mañana por la mañana o por la tarde?" : "Comprendido, que tenga un excelente día." },
+      {
+        speaker: "bot",
+        text: `¡Hola ${lead.name}! Muchísimas gracias por contactar a ${cfg.companyName}. Le llamo rápidamente para responder a su solicitud y ver cómo podemos apoyarle.`,
+      },
+      { speaker: "user", text: qualified ? "Hola, qué rapidez. Sí, estamos evaluando soluciones para automatizar nuestra prospección." : "Por ahora solo estamos investigando, gracias." },
+      { speaker: "bot", text: qualified ? "¡Excelente! Me encantaría agendar una breve sesión personalizada. ¿Le vendría mejor mañana por la mañana o por la tarde?" : "Comprendido perfectamente, le deseo un excelente día." },
       { speaker: "user", text: qualified ? (accepted ? "Mañana por la mañana sería perfecto." : "Prefiero consultarlo con mi equipo primero.") : "" },
     ].filter((t) => Boolean(t.text));
   } else if (qualified && accepted) {
     transcript.push(
-      { speaker: "bot", text: `Great! I have slots open for tomorrow morning and afternoon. Which works best for you?` },
+      { speaker: "bot", text: `Wonderful! I have two convenient demo slots available: tomorrow morning or tomorrow afternoon. Which one fits your calendar best?` },
       { speaker: "user", text: `Tomorrow morning works best for my schedule.` },
-      { speaker: "bot", text: `Perfect, I've reserved tomorrow morning and sent an invitation with a Google Meet link to your email.` },
+      { speaker: "bot", text: `Brilliant! I've reserved that slot for you and sent the invitation with meeting details directly to your email. We look forward to connecting with you!` },
     );
   }
 
