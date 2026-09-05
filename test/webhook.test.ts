@@ -32,7 +32,7 @@ test("testCustomWebhook correctly pings target webhook URL with HMAC signature",
   const result = await testCustomWebhook(targetUrl, "my-secret-key");
   assert.equal(result.ok, true);
   assert.equal(receivedPayload.event, "speed_to_lead.ping");
-  assert.ok(receivedSignature?.startsWith("sha256="));
+  assert.ok((receivedSignature as string | null)?.startsWith("sha256="));
 
   server.close();
 });
@@ -85,7 +85,11 @@ test("dispatchCustomWebhook sends lead qualification payload when configured", a
       objections: [],
       notes: "High intent buyer",
     },
-    score: { score: 95, grade: "A", reasons: ["Decision maker", "Critical pain"] },
+    score: {
+      score: 95,
+      grade: "A",
+      breakdown: { authority: 25, need: 25, timeline: 25, budget: 20 },
+    },
     booking: null,
     summary: "Lead qualified with high intent.",
     evidence: [],
